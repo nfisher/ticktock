@@ -25,7 +25,15 @@
 		public static const PADDING:Number = 5;
 		public static const POST:String = "POST";
 		public static const TEXT:String = "text";
+		public static const LABEL:String = "label";
 		public static const SUBMIT:String = "submit";
+
+		public static const OK:int = 200;
+		public static const CREATED:int = 201;
+		public static const NO_CONTENT:int = 204;
+		public static const MOVED_PERMANENTLY:int = 301;
+		public static const BAD_REQUEST:int = 400;
+		public static const GONE:int = 410;
 
 		private var task_name_txt:TextField;
 		private var current_form:DisplayObjectContainer;
@@ -61,10 +69,19 @@
 			end;
 
 			form( "events" );
+				label( "Duration" );
 				input = { name:"event_duration" };
+				label( "Notes" );
 				input = { name:"event_notes" };
 
-				input = { type:SUBMIT }
+				label( "Task" );
+				input = { name:"task_id" };
+				label( "Project" );
+				input = { name:"project_id" };
+				label( "User" );
+				input = { name:"user_id", text:"1" };
+
+				input = { type:SUBMIT };
 			end;
 		}
 
@@ -108,6 +125,8 @@
 
 			switch( opts.type )
 			{
+				case LABEL:
+					opts.readonly = true;
 				case TEXT:
 					obj = createTextField( opts );
 					break;
@@ -133,6 +152,13 @@
 			return current_form = null;
 		}
 
+		/** label: 
+		 *
+		 */
+		public function label( theLabelText:String ):void {
+			input = { text:theLabelText, type:LABEL };
+		}
+
 
 		/** createTextField: 
 		 *
@@ -140,12 +166,17 @@
 		public function createTextField( opts:Object ):DisplayObject {
 			var tf:TextField = new TextField( );
 			
-			tf.name = opts.name;
-			tf.background = true;
-			tf.border = true;
+			if(opts.name != undefined ) tf.name = opts.name;
+			if(opts.readonly == undefined)
+			{
+				tf.type = TextFieldType.INPUT;
+				tf.background = true;
+				tf.border = true;
+			}
+
 			tf.height = 16;
 			tf.width = 200;
-			tf.type = TextFieldType.INPUT;
+
 			if( opts.text != undefined ) tf.text = opts.text;
 
 			return tf;
@@ -173,7 +204,7 @@
 			sp.addChild( shape );
 			sp.addChild( tf );
 			sp.addEventListener( MouseEvent.CLICK, submitListener );
-			sp.name = "submit";
+			sp.name = SUBMIT;
 
 			return sp;
 		}
@@ -184,7 +215,7 @@
 		 */
 		private function submitListener( event:MouseEvent ):void {
 			var focus:DisplayObject = event.target as DisplayObject;
-			while( focus.name != "submit" ) focus = focus.parent;
+			while( focus.name != SUBMIT ) focus = focus.parent;
 			var form:DisplayObjectContainer = focus.parent;
 
 			var request:URLRequest = new URLRequest( "http://localhost:3301" + buildPath(form) );

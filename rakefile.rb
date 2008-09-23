@@ -26,10 +26,7 @@ end
 
 
 desc 'Compile and debug the application'
-debug :debug do |t|
-	t.input = 'src/TickTock.as'
-	t.library_path << "lib/AsWing.swc"
-end
+debug :debug
 
 desc 'Compile run the test harness'
 unit :test

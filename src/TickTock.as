@@ -11,6 +11,7 @@
 	import flash.events.TextEvent;
 
 	import flash.net.URLRequest;
+	import flash.net.URLRequestHeader;
 	import flash.net.URLRequestMethod;
 	import flash.net.URLStream;
 	import flash.net.URLVariables;
@@ -22,6 +23,8 @@
 	
 	public class TickTock extends Sprite
 	{
+		public static const HOST:String = "http://localhost:3000";
+		public static const XML_EXT:String = ".xml";
 		public static const PADDING:Number = 5;
 		public static const POST:String = "POST";
 		public static const TEXT:String = "text";
@@ -56,23 +59,26 @@
 		 */
 		public function createUI( ):void {
 			form( "tasks" );
-				input = { name:"task_name", text:"Hello" };
+				label( "Name" );
+				input = { name:"name", text:C.task.name };
 
 				input = { type:SUBMIT };
 			end;
 
 			form( "projects" );
-				input = { name:"project_number" };
-				input = { name:"project_name" };
+				label( "Project #" );
+				input = { name:"number" };
+				label( "Name" );
+				input = { name:"name" };
 
 				input = { type:SUBMIT };
 			end;
 
 			form( "events" );
 				label( "Duration" );
-				input = { name:"event_duration" };
+				input = { name:"duration" };
 				label( "Notes" );
-				input = { name:"event_notes" };
+				input = { name:"notes" };
 
 				label( "Task" );
 				input = { name:"task_id" };
@@ -152,6 +158,7 @@
 			return current_form = null;
 		}
 
+
 		/** label: 
 		 *
 		 */
@@ -200,10 +207,12 @@
 			tf.text = "Submit";
 			tf.x = (shape.width - tf.width) / 2;
 			tf.y = (shape.height - tf.height) / 2 + 1;
+			tf.selectable = false;
 
 			sp.addChild( shape );
 			sp.addChild( tf );
 			sp.addEventListener( MouseEvent.CLICK, submitListener );
+			sp.buttonMode = true;
 			sp.name = SUBMIT;
 
 			return sp;
@@ -218,9 +227,11 @@
 			while( focus.name != SUBMIT ) focus = focus.parent;
 			var form:DisplayObjectContainer = focus.parent;
 
-			var request:URLRequest = new URLRequest( "http://localhost:3301" + buildPath(form) );
+			var request:URLRequest = new URLRequest( HOST + buildPath(form) + XML_EXT );
 			request.data = buildVariables( form );
 			request.method = URLRequestMethod.POST;
+			var headers:Array = request.requestHeaders;
+			headers.push( new URLRequestHeader("Content-type","text/xml") );
 
 			var loader:URLStream = new URLStream( );
 			loader.addEventListener( IOErrorEvent.IO_ERROR, ioErrorListener );
@@ -242,10 +253,6 @@
 		 */
 		private function statusListener( e:HTTPStatusEvent ):void {
 			trace( "Status " + e.status );
-			if( e.status == 302 )
-			{
-				e.target.close( );
-			}
 		}
 
 
@@ -267,20 +274,71 @@
 		}
 
 
+		/** attr: 
+		 *
+		 */
+		private function attr( theAttributes:Object ):String {
+			if( theAttributes == null ) return "";
+
+			var attr:String = "";
+
+			for each( var key:String in theAttributes )
+			{
+				// TODO: Escape each individual attribute to main.
+				attr += " " + key + "=\"" + theAttributes[key] + "\"";
+			}
+
+			return attr;
+		}
+
+
+		/** tag: 
+		 *
+		 */
+		private function tag( theNodeName:String, theContents:String = null, theAttributes:Object = null ):String {
+			if( theNodeName == "" ) throw ArgumentError( "The node name must be supplied." );
+			var tag:String = "<" + theNodeName + attr( theAttributes );
+			
+			if( theContents === null )
+			{
+				return tag + "/>";
+			}
+			else if( theContents === "" )
+			{
+				return tag + ">";
+			}
+			else
+			{
+				return tag + ">" + theContents + endTag( theNodeName );
+			}
+		}
+
+
+		/** end_tag: 
+		 *
+		 */
+		private function endTag( theNodeName:String ):String {
+			return "</" + theNodeName + ">";
+		}
+
+
 		/** buildVariables: 
 		 *
 		 */
-		private function buildVariables( dob:DisplayObjectContainer ):URLVariables {
-			var variables:URLVariables = new URLVariables( );
+		private function buildVariables( dob:DisplayObjectContainer ):Object {
 			var len:int = dob.numChildren;
+			var contents:String = ""
 
 			for( var i:int = 0; i < len; i++ )
 			{
 				var tf:TextField = dob.getChildAt( i ) as TextField;
-				if( !tf ) continue;
+				if( !tf || tf.type != TextFieldType.INPUT ) continue;
 
-				variables[tf.name] = tf.text;
+				contents += tag( tf.name, tf.text );
 			}
+
+			var variables:String = tag( dob.name.slice(0, dob.name.length-1), contents );
+			trace( variables );
 
 			return variables;
 		}
